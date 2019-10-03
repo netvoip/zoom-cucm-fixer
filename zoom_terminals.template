@@ -1,0 +1,7 @@
+Value phone (\w+)
+Value number (\d+)
+Value status_observed (true|false)
+Value status_inservice (true|false)
+
+Start
+  ^\d+  \[Cisco JTAPI\(2.0\) Sniffer\]    \[\*\*\*\*\*\] - Term info #\d+ ... Terminal: ${phone}, addresses: ${number}, observed: ${status_observed}(, in service: ${status_inservice}| \.+ \[ WARN \]) -> Record
