@@ -5,7 +5,7 @@ import configparser
 import textfsm
 import subprocess
 
-from cucm_axl import cucm_rt_phones, appuser_add_device, appuser_remove_device
+from cucm_axl import cucm_rt_phones, ccm_appuser_reassign
 from netmiko import ConnectHandler
 from datetime import datetime
 
@@ -50,30 +50,21 @@ def zoom_find_broken_terminals(callrec_output):
                 broken_devices.append(i)
     return broken_devices
 
-def ccm_appuser_reassign(userid, phone, number):
-    if appuser_remove_device('callrec', phone) == 'Success':
-        print('Removed {}, number {}'.format(phone, number))
-        if appuser_add_device('callrec', phone) == 'Success':
-            print('Added {}, number {}'.format(phone, number))
-            result = 'Success'
-        else:
-            result = 'Error on adding'
-    else:
-        result = 'Error on removing'
-    return result
+def connect_and_get_broken(method):
+    if method == 'ssh':
+        callrec_output = ssh_surun(command)
+    elif method == 'file':
+        with open('output.txt', 'r') as file:
+            callrec_output = file.read()
+    elif method == 'local':
+        p1 = subprocess.Popen(["callrec-status"], stdout=subprocess.PIPE)
+        p2 = subprocess.Popen(["grep", "Terminal"], stdin=p1.stdout, stdout=subprocess.PIPE)
+        p1.stdout.close()
+        callrec_output = p2.communicate()[0].decode('utf-8')
+    broken_devices = zoom_find_broken_terminals(callrec_output)
+    return broken_devices
 
-if zoomconnectmode == 'ssh':
-    callrec_output = ssh_surun(command)
-elif zoomconnectmode == 'file':
-    with open('output.txt', 'r') as file:
-        callrec_output = file.read()
-elif zoomconnectmode == 'local':
-    p1 = subprocess.Popen(["callrec-status"], stdout=subprocess.PIPE)
-    p2 = subprocess.Popen(["grep", "Terminal"], stdin=p1.stdout, stdout=subprocess.PIPE)
-    p1.stdout.close()
-    callrec_output = p2.communicate()[0].decode('utf-8')
-broken_devices = zoom_find_broken_terminals(callrec_output)
-
+broken_devices = connect_and_get_broken(zoomconnectmode)
 if viewonly == 'true':
     if len(broken_devices) > 0:
         print('Problem devices:\n', broken_devices)
@@ -85,12 +76,7 @@ else:
 
 if (checkafter == 'true') and (viewonly != 'true'):
     if len(broken_devices) > 0:
-        if zoomconnectmode == 'ssh':
-            callrec_output = ssh_surun()
-        else:
-            with open('output.txt', 'r') as file:
-                callrec_output = file.read()
-        broken_devices = zoom_find_broken_terminals(callrec_output)
+        broken_devices = connect_and_get_broken(zoomconnectmode)
         if len(broken_devices) == 0:
             print('No problem devices left!')
         else:

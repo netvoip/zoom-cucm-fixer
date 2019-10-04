@@ -136,3 +136,15 @@ def appuser_remove_device(userid, device):
             show_history()
             result = 'Error'
     return result
+
+def ccm_appuser_reassign(userid, phone, number):
+    if appuser_remove_device('callrec', phone) == 'Success':
+        print('Removed {}, number {}'.format(phone, number))
+        if appuser_add_device('callrec', phone) == 'Success':
+            print('Added {}, number {}'.format(phone, number))
+            result = 'Success'
+        else:
+            result = 'Error on adding'
+    else:
+        result = 'Error on removing'
+    return result
